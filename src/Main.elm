@@ -1,48 +1,88 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, button, div, text)
-import Html.Events exposing (onClick)
+import Currency exposing (Currency)
+import Html exposing (Html, div)
 import Html.Attributes exposing (class)
+import Time
+
+
+type Money
+    = Money
+        { value : Float
+        , denom : Currency
+        }
+
+
+type Conversion
+    = Conversion
+        { sourceCurrency : Currency
+        , targetCurrency : Currency
+        , exchangeRate : Float
+        }
+    | Empty
 
 
 type alias Model =
-    { count : Int }
+    { currentMoney : Money
+    , currentExchangeRate : Conversion
+    , previousExchangeRate : Conversion
+    }
 
 
 initialModel : Model
 initialModel =
-    { count = 0 }
+    { currentMoney =
+        Money
+            { value = 0
+            , denom = Currency.WUC
+            }
+    , currentExchangeRate = Empty
+    , previousExchangeRate = Empty
+    }
 
 
 type Msg
     = Increment
-    | Decrement
+    | UpdateCurrencyTime Time.Posix
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Increment ->
-            { model | count = model.count + 1 }
+            ( model, Cmd.none )
 
-        Decrement ->
-            { model | count = model.count - 1 }
+        UpdateCurrencyTime _ ->
+            ( model, Cmd.none )
 
 
 view : Model -> Html Msg
-view model =
-    div [class "btn-group"]
-        [ button [ class "btn btn-lg", onClick Increment ] [ text "+1" ]
-        , div [] [ text <| String.fromInt model.count ]
-        , button [ class "btn btn-lg", onClick Decrement ] [ text "-1" ]
-        ]
+view _ =
+    div [ class "container" ]
+        []
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    let
+        -- refresh every 10s (10,000 ms)
+        duration =
+            10 * 1000
+    in
+    Time.every duration UpdateCurrencyTime
+
+
+init : () -> ( Model, Cmd Msg )
+init _ =
+    ( initialModel, Cmd.none )
 
 
 main : Program () Model Msg
 main =
-    Browser.sandbox
-        { init = initialModel
+    Browser.element
+        { init = init
         , view = view
         , update = update
+        , subscriptions = subscriptions
         }
