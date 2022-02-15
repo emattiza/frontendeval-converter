@@ -5,3 +5,27 @@
 body {
   box-sizing: border-box;
 }
+
+.container {
+  @apply mx-auto max-w-md grid grid-cols-3
+}
+
+.currency-input-form {
+  @apply form-control m-4 col-span-3
+}
+
+.currency-select {
+  @apply select
+}
+
+.currency-input {
+  @apply input input-bordered
+}
+
+.currency-input-label {
+  @apply input-group
+}
+
+.exchange-output {
+  @apply grid-cols-3 col-span-3 m-4
+}

@@ -1,17 +1,17 @@
 module Main exposing (main)
 
 import Browser
-import Currency exposing (Currency)
-import Html exposing (Html, div)
-import Html.Attributes exposing (class)
+import Currency exposing (Currency, allInputCurrency)
+import Html exposing (Html, div, h1, input, label, option, select, span, text)
+import Html.Attributes exposing (class, for, id, placeholder, type_)
+import Html.Events exposing (onInput)
 import Time
 
 
-type Money
-    = Money
-        { value : Float
-        , denom : Currency
-        }
+type alias Money =
+    { value : Float
+    , denom : Currency
+    }
 
 
 type Conversion
@@ -33,10 +33,9 @@ type alias Model =
 initialModel : Model
 initialModel =
     { currentMoney =
-        Money
-            { value = 0
-            , denom = Currency.WUC
-            }
+        { value = 0
+        , denom = Currency.USD
+        }
     , currentExchangeRate = Empty
     , previousExchangeRate = Empty
     }
@@ -45,6 +44,8 @@ initialModel =
 type Msg
     = Increment
     | UpdateCurrencyTime Time.Posix
+    | ChangedCurrency (Maybe Currency)
+    | ChangedAmount (Maybe Float)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -56,11 +57,86 @@ update msg model =
         UpdateCurrencyTime _ ->
             ( model, Cmd.none )
 
+        ChangedCurrency maybeCur ->
+            case maybeCur of
+                Just cur ->
+                    ( { model
+                        | currentMoney =
+                            { value = model.currentMoney.value
+                            , denom = cur
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        ChangedAmount maybeAmt ->
+            case maybeAmt of
+                Just amt ->
+                    ( { model
+                        | currentMoney =
+                            { value = amt
+                            , denom = model.currentMoney.denom
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
 
 view : Model -> Html Msg
-view _ =
+view model =
     div [ class "container" ]
-        []
+        [ viewCurrencyInputForm model
+        , viewExchangeInfo model
+        ]
+
+
+viewExchangeInfo : Model -> Html Msg
+viewExchangeInfo model =
+    span
+        [ class "exchange-output" ]
+        [ text <|
+            "Amount: "
+                ++ String.fromFloat model.currentMoney.value
+                ++ " "
+                ++ Currency.toString model.currentMoney.denom
+        ]
+
+
+viewCurrencyInputForm : Model -> Html Msg
+viewCurrencyInputForm _ =
+    div [ class "currency-input-form" ]
+        [ label
+            [ class "currency-input-label" ]
+            [ span [] [ text "Amt" ]
+            , input
+                [ placeholder "0"
+                , class "currency-input"
+                , onInput (String.toFloat >> ChangedAmount)
+                ]
+                []
+            , viewOptionsInputCurrency
+            ]
+        ]
+
+
+viewOptionsInputCurrency : Html Msg
+viewOptionsInputCurrency =
+    select
+        [ class "currency-select"
+        , onInput (Currency.fromString >> ChangedCurrency)
+        ]
+        (List.map optionForCurrency allInputCurrency)
+
+
+optionForCurrency : Currency -> Html Msg
+optionForCurrency curr =
+    option [] [ text <| Currency.toString curr ]
 
 
 subscriptions : Model -> Sub Msg

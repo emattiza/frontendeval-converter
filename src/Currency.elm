@@ -1,4 +1,4 @@
-module Currency exposing (Currency(..), allInputCurrency, toString)
+module Currency exposing (Currency(..), allInputCurrency, toString, fromString)
 
 
 type Currency
@@ -30,6 +30,17 @@ toString cur =
 
         WUC ->
             "WUC"
+
+fromString : String -> Maybe Currency
+fromString cur =
+    case cur of
+        "USD" -> Just USD
+        "EUR" -> Just EUR
+        "GBP" -> Just GBP
+        "CNY" -> Just CNY
+        "JPY" -> Just JPY
+        "WUC" -> Just WUC
+        _ -> Nothing
 
 
 allInputCurrency : List Currency
