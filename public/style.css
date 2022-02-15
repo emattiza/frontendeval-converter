@@ -27,5 +27,5 @@ body {
 }
 
 .exchange-output {
-  @apply grid-cols-3 col-span-3 m-4
+  @apply m-4 col-span-full
 }

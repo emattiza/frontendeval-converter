@@ -5,6 +5,8 @@ import Currency exposing (Currency, allInputCurrency)
 import Html exposing (Html, div, h1, input, label, option, select, span, text)
 import Html.Attributes exposing (class, for, id, placeholder, type_)
 import Html.Events exposing (onInput)
+import Http
+import Json.Decode exposing (Decoder, field, float)
 import Time
 
 
@@ -46,6 +48,7 @@ type Msg
     | UpdateCurrencyTime Time.Posix
     | ChangedCurrency (Maybe Currency)
     | ChangedAmount (Maybe Float)
+    | GotNewRate (Result Http.Error Float)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -55,7 +58,7 @@ update msg model =
             ( model, Cmd.none )
 
         UpdateCurrencyTime _ ->
-            ( model, Cmd.none )
+            ( model, getCurrencyRate model.currentMoney.denom )
 
         ChangedCurrency maybeCur ->
             case maybeCur of
@@ -66,7 +69,7 @@ update msg model =
                             , denom = cur
                             }
                       }
-                    , Cmd.none
+                    , getCurrencyRate cur
                     )
 
                 Nothing ->
@@ -85,6 +88,24 @@ update msg model =
                     )
 
                 Nothing ->
+                    ( model, Cmd.none )
+
+        GotNewRate rateResult ->
+            case rateResult of
+                Ok rate ->
+                    ( { model
+                        | previousExchangeRate = model.currentExchangeRate
+                        , currentExchangeRate =
+                            Conversion
+                                { sourceCurrency = model.currentMoney.denom
+                                , targetCurrency = Currency.WUC
+                                , exchangeRate = rate
+                                }
+                      }
+                    , Cmd.none
+                    )
+
+                Err err ->
                     ( model, Cmd.none )
 
 
@@ -137,6 +158,19 @@ viewOptionsInputCurrency =
 optionForCurrency : Currency -> Html Msg
 optionForCurrency curr =
     option [] [ text <| Currency.toString curr ]
+
+
+getCurrencyRate : Currency -> Cmd Msg
+getCurrencyRate cur =
+    Http.get
+        { url = "https://api.frontendeval.com/fake/crypto/" ++ Currency.toString cur
+        , expect = Http.expectJson GotNewRate rateDecoder
+        }
+
+
+rateDecoder : Decoder Float
+rateDecoder =
+    field "value" float
 
 
 subscriptions : Model -> Sub Msg

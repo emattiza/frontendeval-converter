@@ -1,4 +1,5 @@
 module.exports = {
+  content: ["./src/**/*.elm", "./public/**/*.{css,js,html}"],
   important: true,
   // Active dark mode on class basis
   darkMode: "class",
@@ -23,7 +24,7 @@ module.exports = {
       zIndex: ["hover", "active"],
     },
   },
-  plugins: [ require('daisyui'), ],
+  plugins: [require('daisyui'),],
   future: {
     purgeLayersByDefault: true,
   },
