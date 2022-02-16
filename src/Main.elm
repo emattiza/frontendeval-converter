@@ -2,11 +2,12 @@ module Main exposing (main)
 
 import Browser
 import Currency exposing (Currency, allInputCurrency)
-import Html exposing (Html, div, h1, input, label, option, select, span, text)
-import Html.Attributes exposing (class, for, id, placeholder, type_)
+import Html exposing (Html, div, input, label, option, select, span, text)
+import Html.Attributes exposing (class, placeholder)
 import Html.Events exposing (onInput)
 import Http
 import Json.Decode exposing (Decoder, field, float)
+import Round
 import Time
 
 
@@ -84,7 +85,7 @@ update msg model =
                             , denom = model.currentMoney.denom
                             }
                       }
-                    , Cmd.none
+                    , getCurrencyRate model.currentMoney.denom
                     )
 
                 Nothing ->
@@ -105,7 +106,7 @@ update msg model =
                     , Cmd.none
                     )
 
-                Err err ->
+                Err _ ->
                     ( model, Cmd.none )
 
 
@@ -123,10 +124,77 @@ viewExchangeInfo model =
         [ class "exchange-output" ]
         [ text <|
             "Amount: "
-                ++ String.fromFloat model.currentMoney.value
-                ++ " "
-                ++ Currency.toString model.currentMoney.denom
+                ++ (showConversion <| convertToWuc model.currentMoney model.currentExchangeRate)
+                ++ " Change: "
+                ++ showChange model.previousExchangeRate model.currentExchangeRate
         ]
+
+
+showChange : Conversion -> Conversion -> String
+showChange prev current =
+    case prev of
+        Empty ->
+            ""
+
+        Conversion sourceRecord ->
+            case current of
+                Empty ->
+                    ""
+
+                Conversion targetRecord ->
+                    if sourceRecord.sourceCurrency == targetRecord.sourceCurrency then
+                        ((targetRecord.exchangeRate
+                            / sourceRecord.exchangeRate
+                         )
+                            - 1
+                        )
+                            * 100
+                            |> Basics.round
+                            |> (\x ->
+                                    (if x > 0 then
+                                        "↑"
+
+                                     else if x < 0 then
+                                        "↓"
+
+                                     else
+                                        ""
+                                    )
+                                        ++ String.fromInt x
+                                        |> flip String.append "%"
+                               )
+
+                    else
+                        ""
+
+
+showConversion : Maybe Money -> String
+showConversion maybeMoney =
+    case Maybe.map showMoney maybeMoney of
+        Just out ->
+            out
+
+        Nothing ->
+            ""
+
+
+showMoney : Money -> String
+showMoney { value, denom } =
+    Round.round 2 value ++ " " ++ Currency.toString denom
+
+
+convertToWuc : Money -> Conversion -> Maybe Money
+convertToWuc { value, denom } conversion =
+    case conversion of
+        Empty ->
+            Nothing
+
+        Conversion info ->
+            if denom == info.sourceCurrency then
+                Just { value = info.exchangeRate * value, denom = info.targetCurrency }
+
+            else
+                Nothing
 
 
 viewCurrencyInputForm : Model -> Html Msg
@@ -196,3 +264,8 @@ main =
         , update = update
         , subscriptions = subscriptions
         }
+
+
+flip : (a -> b -> c) -> b -> a -> c
+flip f b a =
+    f a b
